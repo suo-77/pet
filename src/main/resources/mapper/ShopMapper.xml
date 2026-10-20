@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.ShopMapper">
+
+    <sql id="baseColumns">
+        id, shop_name, owner_id, shop_desc, cover, logo, create_time, update_time, deleted
+    </sql>
+
+    <resultMap id="shopMap" type="com.itheima.entity.Shop">
+        <id column="id" property="id"/>
+        <result column="shop_name" property="shopName"/>
+        <result column="owner_id" property="ownerId"/>
+        <result column="shop_desc" property="shopDesc"/>
+        <result column="cover" property="cover"/>
+        <result column="logo" property="logo"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="selectPage" resultMap="shopMap">
+        SELECT <include refid="baseColumns"/>
+        FROM shop
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND shop_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY id
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*)
+        FROM shop
+        WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">
+            AND shop_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+    </select>
+
+    <select id="findById" resultMap="shopMap">
+        SELECT <include refid="baseColumns"/>
+        FROM shop
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO shop (shop_name, owner_id, shop_desc, cover)
+        VALUES (#{shopName}, #{ownerId}, #{shopDesc}, #{cover})
+    </insert>
+
+    <update id="updateInfo">
+        UPDATE shop
+        <set>
+            <if test="shopName != null and shopName != ''">shop_name = #{shopName},</if>
+            <if test="shopDesc != null">shop_desc = #{shopDesc},</if>
+            <if test="cover != null and cover != ''">cover = #{cover},</if>
+        </set>
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="findByOwner" resultMap="shopMap">
+        SELECT <include refid="baseColumns"/>
+        FROM shop
+        WHERE owner_id = #{ownerId} AND deleted = 0
+        LIMIT 1
+    </select>
+
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.ChatMessageMapper">
+
+    <resultMap id="messageMap" type="com.itheima.vo.ChatMessageVO">
+        <id column="id" property="id"/>
+        <result column="session_id" property="sessionId"/>
+        <result column="from_user_id" property="fromUserId"/>
+        <result column="to_user_id" property="toUserId"/>
+        <result column="content" property="content"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="msg_type" property="msgType"/>
+        <result column="is_read" property="isRead"/>
+        <result column="send_time" property="sendTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_message (session_id, from_user_id, to_user_id, content, image_url, post_id, msg_type)
+        VALUES (#{sessionId}, #{fromUserId}, #{toUserId}, #{content}, #{imageUrl}, #{postId}, #{msgType})
+    </insert>
+
+    <select id="selectPageBySession" resultMap="messageMap">
+        SELECT id, session_id, from_user_id, to_user_id, content, image_url,
+               post_id, msg_type, is_read, send_time
+        FROM chat_message
+        WHERE session_id = #{sessionId} AND deleted = 0
+        ORDER BY send_time DESC, id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countBySession" resultType="long">
+        SELECT COUNT(*) FROM chat_message WHERE session_id = #{sessionId} AND deleted = 0
+    </select>
+
+    <update id="markRead">
+        UPDATE chat_message SET is_read = 1
+        WHERE session_id = #{sessionId} AND to_user_id = #{toUserId} AND is_read = 0
+    </update>
+
+    <select id="countUnread" resultType="long">
+        SELECT COUNT(*) FROM chat_message WHERE to_user_id = #{userId} AND is_read = 0 AND deleted = 0
+    </select>
+
+</mapper>

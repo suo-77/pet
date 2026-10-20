@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.GoodsEvaluateMapper">
+
+    <resultMap id="evaluateMap" type="com.itheima.entity.GoodsEvaluate">
+        <id column="id" property="id"/>
+        <result column="goods_id" property="goodsId"/>
+        <result column="user_id" property="userId"/>
+        <result column="content" property="content"/>
+        <result column="images" property="images"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <!-- 联表附加：评价者信息 -->
+        <result column="nickname" property="nickname"/>
+        <result column="avatar" property="avatar"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO goods_evaluate (goods_id, user_id, content, images)
+        VALUES (#{goodsId}, #{userId}, #{content}, #{images})
+    </insert>
+
+    <select id="selectPageByGoods" resultMap="evaluateMap">
+        SELECT e.id, e.goods_id, e.user_id, e.content, e.images,
+               e.create_time, e.update_time, e.deleted, u.nickname, u.avatar
+        FROM goods_evaluate e
+        JOIN `user` u ON u.id = e.user_id AND u.deleted = 0
+        WHERE e.goods_id = #{goodsId} AND e.deleted = 0
+        ORDER BY e.create_time DESC, e.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByGoods" resultType="long">
+        SELECT COUNT(*) FROM goods_evaluate WHERE goods_id = #{goodsId} AND deleted = 0
+    </select>
+
+</mapper>

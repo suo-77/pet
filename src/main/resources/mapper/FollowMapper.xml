@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.FollowMapper">
+
+    <!-- 用户卡片结果映射（列表页展示头像/昵称/简介） -->
+    <resultMap id="userCardMap" type="com.itheima.vo.UserCardVO">
+        <id column="id" property="id"/>
+        <result column="nickname" property="nickname"/>
+        <result column="avatar" property="avatar"/>
+        <result column="intro" property="intro"/>
+    </resultMap>
+
+    <select id="findByPair" resultType="com.itheima.entity.Follow">
+        SELECT id, user_id, follow_user_id, create_time, update_time, deleted
+        FROM follow
+        WHERE user_id = #{userId} AND follow_user_id = #{followUserId}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO follow (user_id, follow_user_id)
+        VALUES (#{userId}, #{followUserId})
+    </insert>
+
+    <update id="updateDeleted">
+        UPDATE follow SET deleted = #{deleted} WHERE id = #{id}
+    </update>
+
+    <select id="countFollowing" resultType="long">
+        SELECT COUNT(*) FROM follow WHERE user_id = #{userId} AND deleted = 0
+    </select>
+
+    <select id="countFan" resultType="long">
+        SELECT COUNT(*) FROM follow WHERE follow_user_id = #{userId} AND deleted = 0
+    </select>
+
+    <!-- 我关注的人：按关注时间倒序 -->
+    <select id="selectFollowingPage" resultMap="userCardMap">
+        SELECT u.id, u.nickname, u.avatar, u.intro
+        FROM follow f
+        JOIN `user` u ON u.id = f.follow_user_id AND u.deleted = 0
+        WHERE f.user_id = #{userId} AND f.deleted = 0
+        ORDER BY f.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 我的粉丝：按关注时间倒序 -->
+    <select id="selectFanPage" resultMap="userCardMap">
+        SELECT u.id, u.nickname, u.avatar, u.intro
+        FROM follow f
+        JOIN `user` u ON u.id = f.user_id AND u.deleted = 0
+        WHERE f.follow_user_id = #{userId} AND f.deleted = 0
+        ORDER BY f.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countRecommend" resultType="long">
+        SELECT COUNT(*)
+        FROM `user` u
+        WHERE u.deleted = 0
+          AND u.id != #{excludeUserId}
+          AND NOT EXISTS (
+              SELECT 1 FROM follow f
+              WHERE f.user_id = #{excludeUserId} AND f.follow_user_id = u.id AND f.deleted = 0
+          )
+    </select>
+
+    <!-- 推荐用户：排除自己与已关注，按ID正序简单实现 -->
+    <select id="selectRecommendPage" resultMap="userCardMap">
+        SELECT u.id, u.nickname, u.avatar, u.intro
+        FROM `user` u
+        WHERE u.deleted = 0
+          AND u.id != #{excludeUserId}
+          AND NOT EXISTS (
+              SELECT 1 FROM follow f
+              WHERE f.user_id = #{excludeUserId} AND f.follow_user_id = u.id AND f.deleted = 0
+          )
+        ORDER BY u.id
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>

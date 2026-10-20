@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.ChatSessionMapper">
+
+    <sql id="baseColumns">
+        id, user_a_id, user_b_id, last_message, last_time, create_time, update_time, deleted
+    </sql>
+
+    <resultMap id="sessionMap" type="com.itheima.entity.ChatSession">
+        <id column="id" property="id"/>
+        <result column="user_a_id" property="userAId"/>
+        <result column="user_b_id" property="userBId"/>
+        <result column="last_message" property="lastMessage"/>
+        <result column="last_time" property="lastTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="findByPair" resultMap="sessionMap">
+        SELECT <include refid="baseColumns"/>
+        FROM chat_session
+        WHERE user_a_id = #{userAId} AND user_b_id = #{userBId}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_session (user_a_id, user_b_id)
+        VALUES (#{userAId}, #{userBId})
+    </insert>
+
+    <update id="updateLast">
+        UPDATE chat_session SET last_message = #{lastMessage}, last_time = #{lastTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 我的会话：联表对方用户信息，未读数用相关子查询 -->
+    <select id="selectMySessions" resultType="com.itheima.vo.ChatSessionVO">
+        SELECT
+            s.id                                    AS sessionId,
+            u.id                                    AS peerId,
+            u.nickname                              AS peerNickname,
+            u.avatar                                AS peerAvatar,
+            s.last_message                          AS lastMessage,
+            s.last_time                             AS lastTime,
+            (SELECT COUNT(*) FROM chat_message m
+              WHERE m.session_id = s.id AND m.to_user_id = #{userId}
+                AND m.is_read = 0 AND m.deleted = 0) AS unreadCount
+        FROM chat_session s
+        JOIN `user` u
+          ON u.id = (CASE WHEN s.user_a_id = #{userId} THEN s.user_b_id ELSE s.user_a_id END)
+             AND u.deleted = 0
+        WHERE (s.user_a_id = #{userId} OR s.user_b_id = #{userId}) AND s.deleted = 0
+        ORDER BY s.last_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countMySessions" resultType="long">
+        SELECT COUNT(*)
+        FROM chat_session s
+        WHERE (s.user_a_id = #{userId} OR s.user_b_id = #{userId}) AND s.deleted = 0
+    </select>
+
+</mapper>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.UserCouponMapper">
+
+    <!-- 我的优惠券视图映射（联表券信息） -->
+    <resultMap id="userCouponVOMap" type="com.itheima.vo.UserCouponVO">
+        <id column="id" property="id"/>
+        <result column="coupon_id" property="couponId"/>
+        <result column="coupon_name" property="couponName"/>
+        <result column="money" property="money"/>
+        <result column="category" property="category"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="status" property="status"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="expire_time" property="expireTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_coupon (user_id, coupon_id)
+        VALUES (#{userId}, #{couponId})
+    </insert>
+
+    <select id="findByUserAndId" resultType="com.itheima.entity.UserCoupon">
+        SELECT id, user_id, coupon_id, status, receive_time, create_time, deleted
+        FROM user_coupon
+        WHERE user_id = #{userId} AND id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 乐观锁核销：status=0 未使用才置 1，0 行 = 已使用或不存在 -->
+    <update id="markUsed">
+        UPDATE user_coupon SET status = 1
+        WHERE user_id = #{userId} AND coupon_id = #{couponId} AND status = 0 AND deleted = 0
+    </update>
+
+    <!-- 取消订单退券：已使用 → 未使用 -->
+    <update id="restoreUsed">
+        UPDATE user_coupon SET status = 0
+        WHERE user_id = #{userId} AND coupon_id = #{couponId} AND status = 1 AND deleted = 0
+    </update>
+
+    <select id="countByUserAndCoupon" resultType="long">
+        SELECT COUNT(*)
+        FROM user_coupon
+        WHERE user_id = #{userId} AND coupon_id = #{couponId} AND deleted = 0
+    </select>
+
+    <sql id="myWhere">
+        WHERE uc.user_id = #{userId} AND uc.deleted = 0
+        <if test="status != null and status == 0">
+            AND uc.status = 0 AND c.expire_time &gt; NOW()
+        </if>
+        <if test="status != null and status == 1">
+            AND uc.status = 1
+        </if>
+        <if test="status != null and status == 2">
+            AND uc.status = 0 AND c.expire_time &lt;= NOW()
+        </if>
+    </sql>
+
+    <select id="selectMyPage" resultMap="userCouponVOMap">
+        SELECT uc.id, uc.coupon_id, uc.status, uc.receive_time,
+               c.coupon_name, c.money, c.category, c.shop_id, c.expire_time
+        FROM user_coupon uc
+        JOIN coupon c ON c.id = uc.coupon_id AND c.deleted = 0
+        <include refid="myWhere"/>
+        ORDER BY uc.receive_time DESC, uc.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countMy" resultType="long">
+        SELECT COUNT(*)
+        FROM user_coupon uc
+        JOIN coupon c ON c.id = uc.coupon_id AND c.deleted = 0
+        <include refid="myWhere"/>
+    </select>
+
+</mapper>

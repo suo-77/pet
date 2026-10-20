@@ -1,0 +1,35 @@
+# ================= 开发环境配置 =================
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # MySQL 部署本机
+    url: jdbc:mysql://localhost:3306/pet_community?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&characterEncoding=utf8
+    username: root
+    password: 123456        # 按本机实际修改
+  data:
+    redis:
+      host: 192.168.100.128   # 虚拟机 Redis（硬性约定：禁止 localhost）
+      port: 6379
+      password: 123456              # 虚拟机 Redis 实际密码（实测 AUTH 123456 成功）
+      database: 1             # 使用 db1
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+  servlet:
+    multipart:
+      max-file-size: 10MB             # 单文件上限
+      max-request-size: 50MB          # 单次请求总上限
+
+# ================= 前后端联调 =================
+server:
+  port: 8082
+  
+
+# ================= 日志（开发环境打印 SQL） =================
+logging:
+  level:
+    com.itheima.mapper: debug   # 打印 MyBatis SQL
+    com.itheima.mq: info        # Stream 生产者/消费者日志

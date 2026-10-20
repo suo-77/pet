@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.PetGoodsMapper">
+
+    <resultMap id="goodsMap" type="com.itheima.entity.PetGoods">
+        <id column="id" property="id"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="pet_name" property="petName"/>
+        <result column="breed" property="breed"/>
+        <result column="age" property="age"/>
+        <result column="price" property="price"/>
+        <result column="description" property="description"/>
+        <result column="images" property="images"/>
+        <result column="stock" property="stock"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <!-- 联表附加：店铺名称 -->
+        <result column="shop_name" property="shopName"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, shop_id, pet_name, breed, age, price, description, images, stock, status,
+        create_time, update_time, deleted
+    </sql>
+
+    <select id="selectByShop" resultMap="goodsMap">
+        SELECT <include refid="baseColumns"/>
+        FROM pet_goods
+        WHERE shop_id = #{shopId} AND deleted = 0 AND status = 0
+        ORDER BY id
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByShop" resultType="long">
+        SELECT COUNT(*)
+        FROM pet_goods
+        WHERE shop_id = #{shopId} AND deleted = 0 AND status = 0
+    </select>
+
+    <!-- 店主管理端：含下架商品 -->
+    <select id="selectByShopOwner" resultMap="goodsMap">
+        SELECT <include refid="baseColumns"/>
+        FROM pet_goods
+        WHERE shop_id = #{shopId} AND deleted = 0
+        ORDER BY id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByShopOwner" resultType="long">
+        SELECT COUNT(*)
+        FROM pet_goods
+        WHERE shop_id = #{shopId} AND deleted = 0
+    </select>
+
+    <select id="findById" resultMap="goodsMap">
+        SELECT g.id, g.shop_id, g.pet_name, g.breed, g.age, g.price, g.description, g.images,
+               g.stock, g.status, g.create_time, g.update_time, g.deleted, s.shop_name
+        FROM pet_goods g
+        JOIN shop s ON s.id = g.shop_id AND s.deleted = 0
+        WHERE g.id = #{id} AND g.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectByIds" resultMap="goodsMap">
+        SELECT <include refid="baseColumns"/>
+        FROM pet_goods
+        WHERE deleted = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="searchByName" resultMap="goodsMap">
+        SELECT <include refid="baseColumns"/>
+        FROM pet_goods
+        WHERE deleted = 0 AND status = 0
+          AND pet_name LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+    <update id="deductStock">
+        UPDATE pet_goods SET stock = stock - #{num}
+        WHERE id = #{id} AND stock >= #{num}
+    </update>
+
+    <update id="restoreStock">
+        UPDATE pet_goods SET stock = stock + #{num}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO pet_goods (shop_id, pet_name, breed, age, price, description, images, stock, status)
+        VALUES (#{shopId}, #{petName}, #{breed}, #{age}, #{price}, #{description}, #{images}, #{stock}, 0)
+    </insert>
+
+    <update id="update">
+        UPDATE pet_goods
+        <set>
+            <if test="petName != null and petName != ''">pet_name = #{petName},</if>
+            <if test="breed != null">breed = #{breed},</if>
+            <if test="age != null">age = #{age},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="images != null">images = #{images},</if>
+            <if test="stock != null">stock = #{stock},</if>
+        </set>
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateStatus">
+        UPDATE pet_goods SET status = #{status}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE pet_goods SET deleted = 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

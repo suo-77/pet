@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.CouponMapper">
+
+    <resultMap id="couponMap" type="com.itheima.entity.Coupon">
+        <id column="id" property="id"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="coupon_name" property="couponName"/>
+        <result column="category" property="category"/>
+        <result column="money" property="money"/>
+        <result column="total_stock" property="totalStock"/>
+        <result column="remain_stock" property="remainStock"/>
+        <result column="per_limit" property="perLimit"/>
+        <result column="start_time" property="startTime"/>
+        <result column="expire_time" property="expireTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="selectValidByShop" resultMap="couponMap">
+        SELECT id, shop_id, coupon_name, category, money, total_stock, remain_stock,
+               per_limit, start_time, expire_time, create_time, update_time, deleted
+        FROM coupon
+        WHERE shop_id = #{shopId} AND deleted = 0 AND expire_time > NOW()
+        ORDER BY category ASC, money DESC
+    </select>
+
+    <select id="selectValidSeckill" resultMap="couponMap">
+        SELECT id, shop_id, coupon_name, category, money, total_stock, remain_stock,
+               per_limit, start_time, expire_time, create_time, update_time, deleted
+        FROM coupon
+        WHERE deleted = 0 AND category = 1 AND expire_time &gt; NOW()
+    </select>
+
+    <select id="findById" resultMap="couponMap">
+        SELECT id, shop_id, coupon_name, category, money, total_stock, remain_stock,
+               per_limit, start_time, expire_time, create_time, update_time, deleted
+        FROM coupon
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+    <update id="deductStock">
+        UPDATE coupon SET remain_stock = remain_stock - 1
+        WHERE id = #{id} AND remain_stock > 0
+    </update>
+
+    <update id="restoreStock">
+        UPDATE coupon SET remain_stock = remain_stock + 1 WHERE id = #{id}
+    </update>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO coupon (shop_id, coupon_name, category, money, total_stock, remain_stock,
+                            per_limit, start_time, expire_time)
+        VALUES (#{shopId}, #{couponName}, #{category}, #{money}, #{totalStock}, #{totalStock},
+                #{perLimit}, #{startTime}, #{expireTime})
+    </insert>
+
+    <!-- 店主删除优惠券：逻辑删除，所有联表查询（我的券/店铺券）均过滤 deleted=0 -->
+    <update id="logicDelete">
+        UPDATE coupon SET deleted = 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
